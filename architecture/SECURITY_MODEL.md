@@ -29,8 +29,14 @@
   environment (`.env*` gitignored); CI uses non-secret dummy values.
 
 ## Honest risk statement
-The system is **not** "completely secure" and has no auth yet. RLS does not
-replace authorization and its custom context is writable by the runtime role.
+The system is **not** "completely secure" and has no auth yet. RLS is defense
+in depth against accidental missing tenant filters and connection-pool context
+leakage, not authentication. The runtime role can forge its custom tenant GUC.
+It does not protect against arbitrary SQL execution, SQL injection, or stolen
+runtime credentials. Before exposing any tenant-data endpoint, Phase 1B must
+verify a server-controlled identity, check current authorization, and derive a
+trusted tenant. Every tenant query must use the callback transaction client and
+an explicit filter for that trusted tenant. RLS does not replace RBAC.
 Recorded gaps: no RBAC, no rate limiting, no email verification, no
 breach-password screening, no private document storage. Each has an owner phase
 in DEVELOPMENT_ROADMAP.md.

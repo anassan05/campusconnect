@@ -1,8 +1,9 @@
 # CampusConnect
 
 Multi-tenant **college placement management SaaS** for engineering colleges in
-India. One shared PostgreSQL database serves many colleges; tenant isolation uses PostgreSQL Row-Level Security, with mandatory
-server-side, session-derived tenant filtering required in future application code.
+India. One shared PostgreSQL database serves many colleges. PostgreSQL RLS is
+only defense in depth for tenant isolation: verified identity, authorization and
+server-side tenant filtering are required before tenant-data endpoints exist.
 
 > **Status: Phase 1A in progress.** College/User schema, forced RLS, a
 > transaction-local tenant helper and restricted DB role provisioning are
@@ -33,8 +34,9 @@ npm ci
 npx prisma generate
 npm run dev                    # http://localhost:3000
 ```
-Use `prisma migrate deploy` with a separate migration identity, then provision
-and use the restricted runtime identity. `db:push` is not safe for this schema:
+An administrator must create the restricted runtime role **before** applying
+`prisma migrate deploy` with a separate migration identity; then the administrator
+applies runtime grants and provisions login separately. `db:push` is not safe for this schema:
 it does not install custom RLS, checks or privileges. See
 `architecture/DATABASE_STRATEGY.md` for setup and integration tests.
 
@@ -79,8 +81,13 @@ sandbox (browser binaries blocked) — documented as unverified.
   through deployment-provider environment variables or secrets managers.
 - The compose Postgres port is bound to `127.0.0.1` only, so the local dev
   database is not exposed on other network interfaces.
-- RLS and restricted-role provisioning are implemented and exercised in CI; RBAC, rate limiting, audit logging, and private document
-  storage remain planned. See `architecture/SECURITY_MODEL.md`.
+- The runtime role can forge its custom tenant setting. RLS mitigates accidental
+  missing filters and pool context leakage, but does not protect against arbitrary
+  SQL execution, SQL injection, or stolen runtime credentials. Phase 1B must
+  verify server-controlled identity, current authorization and trusted tenant
+  derivation before any tenant-data endpoint is exposed. Every tenant query must
+  use the transaction callback client and explicitly filter by the trusted tenant.
+- RBAC, rate limiting, audit logging, and private document storage remain planned. See `architecture/SECURITY_MODEL.md`.
 - Never commit real student data or credentials.
 - Unverified in the agent sandbox: Docker image build (Docker unavailable) and
   Playwright e2e (browser binaries blocked).
