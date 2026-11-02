@@ -6,6 +6,9 @@ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'campusconnect_runtime') THEN
     CREATE ROLE campusconnect_runtime NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS;
   END IF;
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'campusconnect_runtime' AND rolcanlogin) THEN
+    RAISE EXCEPTION 'campusconnect_runtime must be NOLOGIN before migration';
+  END IF;
   IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'campusconnect_runtime'
              AND (rolsuper OR rolbypassrls OR rolcreatedb OR rolcreaterole OR rolreplication)) THEN
     RAISE EXCEPTION 'campusconnect_runtime has unsafe attributes';

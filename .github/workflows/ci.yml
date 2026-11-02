@@ -40,7 +40,30 @@ jobs:
           node-version: 22
           cache: npm
       - name: Install dependencies (lockfile)
-        run: npm ci --no-audit --no-fund
+        run: npm ci --no-fund
+      - name: Record dependency audit
+        shell: bash
+        run: |
+          audit_status=0
+          npm audit --json > "$RUNNER_TEMP/npm-audit.json" || audit_status=$?
+          # Vulnerabilities make npm audit exit 1; registry/report failures must
+          # still fail CI. Findings are visible, not a vulnerability-free gate.
+          node - "$RUNNER_TEMP/npm-audit.json" "$audit_status" <<'NODE'
+          const fs = require('node:fs');
+          const r = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
+          const status = Number(process.argv[3]);
+          if (!r.metadata?.vulnerabilities || r.error || (status !== 0 && status !== 1)) process.exit(1);
+          const v = r.metadata.vulnerabilities;
+          if ((status === 0) !== (v.total === 0)) process.exit(1);
+          console.log(`::warning title=npm audit::${v.total} total: ${v.critical} critical, ${v.high} high, ${v.moderate} moderate, ${v.low} low`);
+          NODE
+      - name: Upload dependency audit report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: npm-audit-report
+          path: ${{ runner.temp }}/npm-audit.json
+          if-no-files-found: error
       - name: Generate Prisma client
         run: npx prisma generate
       - name: Apply migrations and provision restricted test role
@@ -48,6 +71,9 @@ jobs:
           PGPASSWORD: ci
         run: |
           psql -h localhost -U ci -d campusconnect_ci -v ON_ERROR_STOP=1 -f prisma/admin/create-runtime-role.sql
+          # Idempotent while NOLOGIN; assert pre-migration role state in the disposable DB.
+          psql -h localhost -U ci -d campusconnect_ci -v ON_ERROR_STOP=1 -f prisma/admin/create-runtime-role.sql
+          test "$(psql -h localhost -U ci -d campusconnect_ci -At -v ON_ERROR_STOP=1 -c "SELECT rolcanlogin OR rolsuper OR rolbypassrls OR rolcreatedb OR rolcreaterole OR rolreplication FROM pg_roles WHERE rolname = 'campusconnect_runtime'")" = f
           npx prisma migrate deploy
           psql -h localhost -U ci -d campusconnect_ci -v ON_ERROR_STOP=1 -f prisma/admin/runtime-role.sql
           psql -h localhost -U ci -d campusconnect_ci -v ON_ERROR_STOP=1 -c "ALTER ROLE campusconnect_runtime LOGIN PASSWORD 'ci-only'"

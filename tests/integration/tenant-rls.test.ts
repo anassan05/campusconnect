@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { readFile } from "node:fs/promises";
 import { PrismaClient } from "@prisma/client";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { withTenantTransaction } from "@/lib/tenant-transaction";
@@ -108,6 +109,27 @@ describe("PostgreSQL tenant isolation (restricted runtime login)", () => {
         id: randomUUID(), email: email(), role: "STUDENT", collegeId: a, createdByUserId: userA,
       } })).toMatchObject({ createdByUserId: userA });
     });
+  });
+
+  it("pre-migration role script rejects an existing LOGIN role without changing it", async () => {
+    // Disposable CI/test cluster only: execute the actual checked-in admin script.
+    // LOGIN was enabled after migration so the runtime client can connect.
+    const roleState = () => admin.$queryRaw<Array<{
+      rolcanlogin: boolean; rolsuper: boolean; rolbypassrls: boolean;
+      rolcreatedb: boolean; rolcreaterole: boolean; rolreplication: boolean; memberships: bigint;
+    }>>`SELECT r.rolcanlogin, r.rolsuper, r.rolbypassrls, r.rolcreatedb,
+      r.rolcreaterole, r.rolreplication,
+      (SELECT count(*) FROM pg_auth_members m WHERE m.member = r.oid OR m.roleid = r.oid) AS memberships
+      FROM pg_roles r WHERE r.rolname = 'campusconnect_runtime'`;
+    const before = await roleState();
+    expect(before).toEqual([{
+      rolcanlogin: true, rolsuper: false, rolbypassrls: false, rolcreatedb: false,
+      rolcreaterole: false, rolreplication: false, memberships: 0n,
+    }]);
+    const script = await readFile("prisma/admin/create-runtime-role.sql", "utf8");
+    // Trusted repository SQL only, no request/client input is concatenated.
+    await expect(admin.$executeRawUnsafe(script)).rejects.toThrow("campusconnect_runtime must be NOLOGIN before migration");
+    expect(await roleState()).toEqual(before);
   });
 
   it("checks role attributes, membership, ownership, and enabled/forced RLS", async () => {
