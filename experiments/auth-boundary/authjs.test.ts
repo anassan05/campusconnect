@@ -71,8 +71,8 @@ async function signIn(pass = password) {
 async function session(cookie: string) {
   return handlers.GET(request("/api/auth/session", { headers: { cookie } }));
 }
-async function serverActor(cookie: string) {
-  const req = request("/protected", { headers: { cookie } });
+async function serverActor(cookie: string, requestedCollege = "") {
+  const req = request(`/protected?collegeId=${encodeURIComponent(requestedCollege)}`, { headers: { cookie } });
   const jwt = await getToken({ req, secret, secureCookie: true });
   if (!jwt || typeof jwt.capability !== "string") return [];
   return resolve(jwt.capability);
@@ -113,6 +113,20 @@ describe("Auth.js v5 credentials and encrypted JWT proof (no live endpoint)", ()
     expect(response.headers.getSetCookie().some(value => value.startsWith("__Secure-authjs.session-token="))).toBe(false);
     expect(await serverActor("")).toEqual([]);
     expect(await serverActor("__Secure-authjs.session-token=forged")).toEqual([]);
+  });
+  it("ignores a client-supplied tenant when resolving the authenticated actor", async () => {
+    const { response } = await signIn();
+    const cookie = cookiePairs(response);
+    const foreignCollege = randomUUID();
+    expect(await serverActor(cookie, foreignCollege)).toEqual([{ user_id: id, college_id: college, role: "STUDENT" }]);
+  });
+  it("rejects a credentials POST without a CSRF token", async () => {
+    const response = await handlers.POST(request("/api/auth/callback/credentials", {
+      method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({ email, password }),
+    }));
+    expect(response.headers.getSetCookie().some(value => value.startsWith("__Secure-authjs.session-token="))).toBe(false);
+    expect(response.headers.get("location")).toContain("MissingCSRF");
   });
   it("checks current role, account status and server revocation for existing cookies", async () => {
     const { response } = await signIn();

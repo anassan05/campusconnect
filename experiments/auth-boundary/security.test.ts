@@ -97,14 +97,35 @@ describe("Disposable PostgreSQL authentication boundary proof", () => {
     }
   });
   it("has a non-login definer owner with no memberships or bypass privileges", async () => {
-    const roles = await admin.$queryRaw<Array<{ rolcanlogin: boolean; rolsuper: boolean; rolbypassrls: boolean; memberships: bigint }>>`
-      SELECT rolcanlogin, rolsuper, rolbypassrls,
+    const roles = await admin.$queryRaw<Array<{ rolcanlogin: boolean; rolsuper: boolean; rolbypassrls: boolean; rolcreatedb: boolean; rolcreaterole: boolean; rolreplication: boolean; memberships: bigint }>>`
+      SELECT rolcanlogin, rolsuper, rolbypassrls, rolcreatedb, rolcreaterole, rolreplication,
       (SELECT count(*) FROM pg_auth_members m WHERE m.member = r.oid OR m.roleid = r.oid) AS memberships
       FROM pg_roles r WHERE rolname = 'cc_auth_poc_owner'`;
-    expect(roles).toEqual([{ rolcanlogin: false, rolsuper: false, rolbypassrls: false, memberships: 0n }]);
+    expect(roles).toEqual([{ rolcanlogin: false, rolsuper: false, rolbypassrls: false, rolcreatedb: false, rolcreaterole: false, rolreplication: false, memberships: 0n }]);
     const [{ createAllowed }] = await admin.$queryRaw<Array<{ createAllowed: boolean }>>`
       SELECT has_schema_privilege('cc_auth_poc_owner', 'cc_auth_poc', 'CREATE') AS "createAllowed"`;
     expect(createAllowed).toBe(false);
+  });
+  it("keeps table privileges and ownership separate from the runtime and definer roles", async () => {
+    const rows = await admin.$queryRaw<Array<{ tablename: string; owner: string; runtime_select: boolean; definer_update: boolean }>>`
+      SELECT c.relname AS tablename, pg_get_userbyid(c.relowner) AS owner,
+        has_table_privilege('campusconnect_runtime', c.oid, 'SELECT') AS runtime_select,
+        has_table_privilege('cc_auth_poc_owner', c.oid, 'UPDATE') AS definer_update
+      FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
+      WHERE n.nspname='cc_auth_poc' AND c.relname IN ('credentials', 'dummy_hash', 'sessions') ORDER BY c.relname`;
+    expect(rows).toHaveLength(3);
+    for (const row of rows) {
+      expect(row.owner).not.toBe("campusconnect_runtime");
+      expect(row.owner).not.toBe("cc_auth_poc_owner");
+      expect(row.runtime_select).toBe(false);
+      expect(row.definer_update).toBe(row.tablename === "sessions");
+    }
+    const [{ canUpdateUsers, canSelectUsers }] = await admin.$queryRaw<Array<{ canUpdateUsers: boolean; canSelectUsers: boolean }>>`
+      SELECT has_any_column_privilege('cc_auth_poc_owner', 'public.users', 'UPDATE') AS "canUpdateUsers",
+             has_table_privilege('campusconnect_runtime', 'public.users', 'SELECT') AS "canSelectUsers"`;
+    expect(canUpdateUsers).toBe(false);
+    // The ordinary SELECT grant remains RLS-constrained, not unrestricted.
+    expect(canSelectUsers).toBe(true);
   });
   it("only permits the intended functions and denies PUBLIC execution", async () => {
     const functions = await admin.$queryRaw<Array<{ name: string; definer: boolean; owner: string; settings: string[]; public_execute: boolean; runtime_execute: boolean }>>`
