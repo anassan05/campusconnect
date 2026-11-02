@@ -2,94 +2,76 @@
 
 Last updated: 2026-11-02
 
-## Current phase: Phase 0 — engineering foundation (corrected scope) — **COMPLETE and MERGED**
-PR: https://github.com/anassan05/campusconnect/pull/1 — **MERGED** (merged 2026-11-02T14:28:39Z into `main`; no longer open or awaiting review)
-Merge commit on `main`: `992c313af60a7126fd716ad2e3eb2642709f1e9f`
-Session branch: `arena/94047ae7-campusconnect` (based on the merge commit; no other branches created/pushed).
+## Phase 1A — database foundation: in progress, not complete
 
-## Scope correction applied (per independent review of PR #1)
-Removed all business implementation from the deliverable: authentication and
-registration flows, student/company/job/application APIs, dashboards and
-business pages, business-domain Prisma models, seed data, eligibility and
-application workflows. Phase 0 now contains foundation + documentation only.
+Implemented for review: College and User, five-role enum and role/tenant CHECK;
+initial versioned Prisma migration with college FK, tenant-aware creator FK,
+ENABLE/FORCE RLS and fail-closed policies targeted only to the restricted
+runtime role; pre-migration role creation and post-migration grant provisioning;
+transaction-local parameterized tenant context helper; actual PostgreSQL RLS
+integration suite and CI wiring. See `architecture/MULTI_TENANCY.md` and
+`architecture/DATABASE_STRATEGY.md` for boundaries, provisioning and tests.
+No authentication, RBAC, onboarding, business workflows or deployment were
+implemented. Platform identities are not accessible to the runtime tenant role;
+a privileged platform access/bootstrap design is deferred to Phase 1B review.
 
-## Phase 0 contents (implemented)
-- Next.js 15 App Router scaffold, React 19, strict TypeScript, Tailwind CSS
-- ESLint flat config; scripts for dev/lint/typecheck/test/build/db
-- Prisma configuration: `prisma/schema.prisma` with datasource + generator only
-  (no business models by design); PostgreSQL 16 via docker-compose
-- Secure `.gitignore`; placeholder-only `.env.example`
-- `AGENTS.md`; `README.md`; `architecture/` (6 documents)
-- GitHub Actions CI (`.github/workflows/ci.yml`)
-- Dockerfile + docker-compose (dev Postgres)
-- Minimal app shell (landing page) + `GET /api/health`
-- Vitest unit test for the health endpoint; Playwright e2e spec (not executed here)
+### Dependency and provisioning review (2026-11-02)
 
-## Verification results
+The seven stale root lockfile entries were removed; `tsx` remains as a legitimate
+optional transitive dependency. A scoped Next -> PostCSS override replaces the
+vulnerable Next-nested 8.4.31 with 8.5.32; other locked versions did not change.
+`npm audit` was 26 findings (18 moderate, 6 high, 2 critical) before, and 23
+(17 moderate, 4 high, 2 critical) after. `npm audit --omit=dev`: 3 high; Prisma
+is retained by an optional peer even in an omit-dev installation. Exact paths,
+advisories, exposure, mitigations and the non-breaking-fix limitation are in
+`architecture/DEPENDENCY_SECURITY.md`; tracked by
+[issue #4](https://github.com/anassan05/campusconnect/issues/4). The audit is not
+clean; dependency findings must be reviewed before production. CI publishes the
+full JSON audit artifact and warns, but does not treat the findings as a gate.
 
-### CI-verified (GitHub Actions — executed, green)
-- Run **41459517857** on the corrected PR-head commit (d0e1cf4) → **success**
-  (lint + strict typecheck + Vitest + production build):
-  https://github.com/anassan05/campusconnect/actions/runs/41459517857
-- Run **41462308444** on merged `main` (merge commit
-  `992c313af60a7126fd716ad2e3eb2642709f1e9f`, push) → **success** (same checks):
-  https://github.com/anassan05/campusconnect/actions/runs/41462308444
+`create-runtime-role.sql` now rejects an already-LOGIN role before migration
+without changing it. CI tests creation/idempotence with NOLOGIN and the integration
+suite exercises the actual script against the existing LOGIN test role.
 
-### Executed locally in the agent sandbox (2026-11-02)
-- `npm ci` — succeeded (lockfile)
-- `npx prisma generate` — succeeded (engine binaries host blocked in sandbox;
-  local placeholder engine paths used; see limitations)
-- `npm run lint` — **0 errors, 0 warnings**
-- `npm run typecheck` (strict) — **0 errors**
-- `npm test` (Vitest) — **1/1 passed** (health endpoint)
-- `npm run build` — **succeeded** (production build)
+### Verification (2026-11-02)
 
-### NOT verified (neither in CI nor locally in the sandbox)
-- **Docker image build** — Docker unavailable in the agent sandbox.
-- **Docker Compose execution** — Docker unavailable in the agent sandbox.
-- **Playwright E2E** — browser binaries cannot be downloaded in the sandbox;
-  `tests/e2e/landing.spec.ts` has not been executed; e2e is not wired into CI.
-- **Prisma database operations** (`db:push`, `migrate`, `studio`) — Prisma
-  engine binary host blocked; no live database operations were performed.
+- `npm ci` passed from a clean install. `npm ls --all` passed. `npm audit --json`
+  and `npm audit` ran and exited 1 due to findings; counts above are actual.
+- Plain `npx prisma generate` failed locally because engine downloads are blocked.
+  Placeholder-assisted generation succeeded for typechecking; this is not DB
+  verification. `npm run lint`, `npm run typecheck`, `npm test` (1/1) and
+  `npm run build` passed locally after remediation.
+- PostgreSQL 16 push run [41474397667](https://github.com/anassan05/campusconnect/actions/runs/41474397667)
+  on commit `85cedad9854a0109aa8baf5f2a5467d489d3f97c` passed real Prisma
+  generation, role creation, migration, provisioning, lint, typecheck, unit
+  tests and build. `npm run test:integration` reported **15 passed, 0 failed,
+  0 pending**. CI audit reported **23** (17 moderate, 4 high, 2 critical) and
+  uploaded `npm-audit-report`; a successful CI run does not mean zero findings.
+  No PostgreSQL or Docker is installed locally; a later documentation-only
+  commit triggers a new final-head run.
+- Docker/Compose and Playwright e2e remain unverified locally. Independent review
+  remains pending. No production data or destructive database changes were used.
 
-## Review findings — recorded, not hidden
-1. RLS is **not implemented** (planned Phase 1) — documented in MULTI_TENANCY.md.
-2. Composite tenant-aware foreign keys **not implemented** — planned, documented.
-3. Missing-CGPA eligibility validation gap — **out of scope**: that business code
-   was removed from Phase 0; the eligibility engine is a Phase 5 deliverable and
-   the gap will be re-assessed there.
-4. Demo credentials previously in README/seed — **removed** with the seed and
-   business code; no credentials remain in the repo.
-5. Role model differs from the required five roles — the implemented code had
-   six roles; all role code was removed. ROLE_MODEL.md now documents the
-   required five-role model as the planned target.
-6. No Prisma migration history established — true; first migrations will be
-   created with the first domain schema via `prisma migrate dev`.
-7. Playwright e2e execution **unverified** — browser binaries cannot be
-   downloaded in this sandbox; stated in README and PR description.
+### Limitations and next steps
 
-## Known limitations
-- Prisma engine download (binaries.prisma.sh) blocked in sandbox; `db:push`/
-  `migrate` require that host reachable. Prisma database operations remain
-  unverified.
-- Playwright e2e not executed (see finding 7); Docker image build and Docker
-  Compose execution also unverified (Docker unavailable in sandbox).
-- CI is green on both the corrected PR-head commit (run 41459517857) and
-  merged `main` (run 41462308444) — see above.
+RLS is defense in depth against accidental missing tenant filters and pool
+context leakage, not authentication: the runtime role can forge its own custom
+setting. It does not protect against arbitrary SQL execution, SQL injection, or
+stolen runtime credentials. Before exposing any tenant-data endpoint, Phase 1B
+must derive the tenant from a verified, server-controlled identity, enforce
+current authorization, and design reviewed, explicit platform-admin tenant
+selection and bootstrap. Every tenant query must use the transaction callback
+client and an explicit trusted tenant filter. The creator FK remains nullable
+for controlled bootstrap/import, but enforces same-tenant references when set; it
+is not a complete audit log. The integration suite demonstrates GUC forgery as
+an acknowledged limitation rather than an isolation guarantee. Runtime role grants do not implement RBAC.
+Never expose raw uniqueness/constraint errors. Do not start Phase 1B until
+independent review and project-owner approval. No production data, credentials,
+deployment or destructive database operations were used.
 
-## Next phase: Phase 1 (planned — NOT implemented)
-Phase 1 (authentication, authorization, five-role RBAC, RLS, restricted DB
-roles, migrations, tenant isolation) is the next planned phase. Its approval
-prerequisite — independent review and merge of PR #1 — is **satisfied**: PR #1
-merged into `main` as commit `992c313af60a7126fd716ad2e3eb2642709f1e9f`
-with green CI (run 41462308444). None of the Phase 1 capabilities (auth,
-RBAC, RLS, migrations, tenant isolation) are implemented yet.
+## Prior phase
 
-## Safety
-No secrets committed; no real student data; no destructive DB operations; no
-deployment; PR #1 merged via independent review (not self-merged).
-`docker-compose.yml` uses local dev-only credentials (disclosed in README;
-loopback-only port binding); production credentials must come from
-deployment-provider env vars/secrets. Docker image build, Docker Compose
-execution, Playwright e2e and Prisma database operations remain unverified in
-the agent sandbox.
+Phase 0 engineering foundation was merged in PR #1. Previous Phase 0 CI runs:
+https://github.com/anassan05/campusconnect/actions/runs/41459517857 and
+https://github.com/anassan05/campusconnect/actions/runs/41462308444. Those runs
+do not verify Phase 1A. Phase 0 Playwright and Docker checks were not executed.
