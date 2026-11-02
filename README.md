@@ -5,9 +5,10 @@ India. One shared PostgreSQL database serves many colleges; tenant isolation is
 planned to be enforced by PostgreSQL Row-Level Security on top of mandatory
 server-side, session-derived tenant filtering.
 
-> **Status: Phase 0 — engineering foundation only.** No business modules,
-> authentication, or APIs are implemented yet. See
-> `architecture/DEVELOPMENT_ROADMAP.md` and `IMPLEMENTATION_STATUS.md`.
+> **Status: Phase 0 — engineering foundation only (complete and merged via
+> PR #1).** No business modules, authentication, or business-facing APIs are
+> implemented yet. The only API route currently implemented is `GET /api/health`.
+> See `architecture/DEVELOPMENT_ROADMAP.md` and `IMPLEMENTATION_STATUS.md`.
 
 ## Planned key capabilities (not implemented)
 College onboarding & platform approval, student profiles & documents, company
@@ -85,6 +86,12 @@ sandbox (browser binaries blocked) — documented as unverified.
   Playwright e2e (browser binaries blocked).
 
 ## Docker
+`docker-compose.yml` currently defines **only the local development PostgreSQL
+service** — no application container/service has been added yet; the app
+service is added together with the first runnable backend phase. (Docker image
+build and Compose execution remain unverified in the agent sandbox, where
+Docker is unavailable.)
+
 ```bash
-docker compose up -d --build   # local development: Postgres service (+ app once Phase 1 lands)
+docker compose up -d   # local development: Postgres service only (app service added in a later phase)
 ```
