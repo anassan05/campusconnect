@@ -14,8 +14,7 @@ jobs:
   checks:
     name: Lint, typecheck, test, build
     runs-on: ubuntu-latest
-    # Isolated ephemeral PostgreSQL. Used only if DB-backed checks are added later;
-    # current checks (lint/type/test/build) do not require a live database.
+    # Isolated, disposable PostgreSQL for real migration and RLS integration tests.
     services:
       postgres:
         image: postgres:16-alpine
@@ -32,7 +31,8 @@ jobs:
           --health-retries 10
     env:
       DATABASE_URL: postgresql://ci:ci@localhost:5432/campusconnect_ci?schema=public
-      AUTH_SECRET: ci-only-not-a-real-secret
+      TEST_ADMIN_DATABASE_URL: postgresql://ci:ci@localhost:5432/campusconnect_ci?schema=public
+      TEST_RUNTIME_DATABASE_URL: postgresql://campusconnect_runtime:ci-only@localhost:5432/campusconnect_ci?schema=public
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -43,6 +43,15 @@ jobs:
         run: npm ci --no-audit --no-fund
       - name: Generate Prisma client
         run: npx prisma generate
+      - name: Apply migrations and provision restricted test role
+        env:
+          PGPASSWORD: ci
+        run: |
+          npx prisma migrate deploy
+          psql -h localhost -U ci -d campusconnect_ci -v ON_ERROR_STOP=1 -f prisma/admin/runtime-role.sql
+          psql -h localhost -U ci -d campusconnect_ci -v ON_ERROR_STOP=1 -c "ALTER ROLE campusconnect_runtime LOGIN PASSWORD 'ci-only'"
+      - name: PostgreSQL RLS integration tests
+        run: npm run test:integration
       - name: Lint
         run: npm run lint
       - name: TypeScript typecheck (strict)
