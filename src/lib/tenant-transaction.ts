@@ -4,7 +4,10 @@ import { Prisma, PrismaClient } from "@prisma/client";
  * Server-only boundary: collegeId MUST be resolved from a verified server-side
  * identity and authorization decision, never directly from request input.
  * Phase 1A provides no authentication or callers that establish that trust.
- * All tenant queries must also explicitly filter by this same collegeId.
+ * Every tenant query must use the callback transaction client and explicitly
+ * filter by this same trusted collegeId; never use the global client inside.
+ * The runtime role can forge this setting: it is not authentication and does
+ * not protect against arbitrary SQL, SQL injection, or stolen DB credentials.
  */
 export async function withTenantTransaction<T>(
   client: PrismaClient,

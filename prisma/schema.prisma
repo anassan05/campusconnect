@@ -28,6 +28,7 @@ model User {
   email           String  @unique
   role            Role
   collegeId       String? @map("college_id") @db.Uuid
+  // NULL is intentional for controlled bootstrap/import; not an audit trail.
   createdByUserId String? @map("created_by_user_id") @db.Uuid
 
   college   College? @relation(fields: [collegeId], references: [id], onDelete: Restrict)

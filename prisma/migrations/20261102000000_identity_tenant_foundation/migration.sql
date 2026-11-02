@@ -1,4 +1,5 @@
--- Initial identity schema. No credentials or authentication are implemented.
+-- Initial identity schema. The administrator must create campusconnect_runtime
+-- before applying this migration. No credentials or authentication are implemented.
 CREATE TYPE "Role" AS ENUM ('PLATFORM_SUPER_ADMIN', 'COLLEGE_ADMIN', 'PLACEMENT_OFFICER', 'COORDINATOR', 'STUDENT');
 
 CREATE TABLE "colleges" (
@@ -32,9 +33,9 @@ ALTER TABLE "users" FORCE ROW LEVEL SECURITY;
 
 -- Missing/empty settings match no row. Platform users (NULL college_id) never
 -- match; platform-wide access is not provided by the runtime role in Phase 1A.
-CREATE POLICY "colleges_tenant_isolation" ON "colleges"
+CREATE POLICY "colleges_tenant_isolation" ON "colleges" TO campusconnect_runtime
   USING ("id"::text = NULLIF(current_setting('app.college_id', true), ''))
   WITH CHECK ("id"::text = NULLIF(current_setting('app.college_id', true), ''));
-CREATE POLICY "users_tenant_isolation" ON "users"
+CREATE POLICY "users_tenant_isolation" ON "users" TO campusconnect_runtime
   USING ("college_id"::text = NULLIF(current_setting('app.college_id', true), ''))
   WITH CHECK ("college_id"::text = NULLIF(current_setting('app.college_id', true), ''));
