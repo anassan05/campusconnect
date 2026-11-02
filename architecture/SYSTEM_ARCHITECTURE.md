@@ -16,11 +16,18 @@
 - Minimal app shell (landing page) and `GET /api/health`
 - One Vitest unit test (health endpoint) — executed, passing
 
-## Phase 1A database foundation (PostgreSQL CI passed; review pending)
+## Phase 1A database foundation (merged via PR #3)
 - College and User models, five-role enum, tenant constraints and initial migration
 - Forced PostgreSQL RLS, restricted runtime role provisioning, transaction-local
   context helper; see MULTI_TENANCY.md for its security boundary.
 - No authentication or authorization; no business workflows.
+
+## Phase 1B status
+
+The pre-authentication lookup candidate is documented in
+`PHASE_1B_AUTH_DESIGN.md`, but the privileged boundary, authentication,
+sessions and RBAC are not implemented or verified. No tenant-data endpoint is
+exposed. See `IMPLEMENTATION_STATUS.md` for the blocker.
 
 ## Planned architecture (📋)
 

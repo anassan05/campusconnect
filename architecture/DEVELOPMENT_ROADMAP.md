@@ -3,8 +3,8 @@
 | Phase | Scope | Status |
 |---|---|---|
 | 0 | Engineering foundation & architecture docs | ✅ complete and merged (PR #1, merge commit `992c313af60a7126fd716ad2e3eb2642709f1e9f`) |
-| 1A | Identity and tenant database foundation (schema, RLS, role separation) | 🚧 PostgreSQL CI passed; independent review and approval pending |
-| 1B | Authentication, session-derived tenant authorization, five-role RBAC | 📋 planned; awaits Phase 1A review and approval |
+| 1A | Identity and tenant database foundation (schema, RLS, role separation) | ✅ merged via PR #3 (`dd789f9f58579eaea7b1e804dc9b1eb3393edc53`) |
+| 1B | Authentication, session-derived tenant authorization, five-role RBAC | 🚧 design candidate documented; privileged lookup boundary and implementation not verified |
 | 2 | College onboarding & platform approval | 📋 |
 | 3 | Student management & document handling | 📋 |
 | 4 | Company & placement drive management | 📋 |

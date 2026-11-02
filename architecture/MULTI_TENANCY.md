@@ -45,7 +45,9 @@ A platform admin's explicit tenant selection is only a requested target: the
 server must verify platform authority and the target before establishing a
 single-tenant context. Cross-tenant administration and login/bootstrap of
 platform identities require a separately reviewed, least-privilege design;
-there is no Phase 1A privileged runtime path or broad bypass policy.
+there is no Phase 1A privileged runtime path or broad bypass policy. A Phase 1B
+candidate is described in `PHASE_1B_AUTH_DESIGN.md`; it is not implemented or
+verified and must not be mistaken for an authentication boundary.
 
 PostgreSQL custom settings are not authenticated tenant identities: the runtime
 role can **forge its own setting** for another college. RLS is defense in depth

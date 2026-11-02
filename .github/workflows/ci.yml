@@ -85,6 +85,18 @@ jobs:
           if [ -f "$RUNNER_TEMP/tenant-tests.json" ]; then
             node -e 'const r=require(process.argv[1]); console.log(`::notice title=PostgreSQL integration tests::${r.numPassedTests} passed, ${r.numFailedTests} failed, ${r.numPendingTests} pending, ${r.numTotalTests} total`)' "$RUNNER_TEMP/tenant-tests.json"
           fi
+      - name: Set up isolated authentication proof (disposable DB only)
+        env:
+          PGPASSWORD: ci
+        run: psql -h localhost -U ci -d campusconnect_ci -v ON_ERROR_STOP=1 -f experiments/auth-boundary/setup.sql
+      - name: Authentication boundary proof tests
+        run: npm run test:auth-poc -- --reporter=default --reporter=json --outputFile.json="$RUNNER_TEMP/auth-poc-tests.json"
+      - name: Report authentication proof counts
+        if: always()
+        run: |
+          if [ -f "$RUNNER_TEMP/auth-poc-tests.json" ]; then
+            node -e 'const r=require(process.argv[1]); console.log(`::notice title=Authentication proof tests::${r.numPassedTests} passed, ${r.numFailedTests} failed, ${r.numPendingTests} pending, ${r.numTotalTests} total`); for (const t of r.testResults || []) if (t.status === "failed") { const details = (t.message || t.assertionResults?.filter(x => x.status === "failed").map(x => x.failureMessages.join(" ")).join(" ") || "Test suite failed").replace(/[a-f0-9]{64}/gi, "[redacted]").replace(/\r?\n/g, " ").slice(0, 800); console.log(`::error title=Authentication proof failure::${details}`); }' "$RUNNER_TEMP/auth-poc-tests.json"
+          fi
       - name: Lint
         run: npm run lint
       - name: TypeScript typecheck (strict)
