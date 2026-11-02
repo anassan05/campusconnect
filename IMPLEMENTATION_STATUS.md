@@ -41,10 +41,14 @@ suite exercises the actual script against the existing LOGIN test role.
   Placeholder-assisted generation succeeded for typechecking; this is not DB
   verification. `npm run lint`, `npm run typecheck`, `npm test` (1/1) and
   `npm run build` passed locally after remediation.
-- Revised role test and dependency changes require fresh PostgreSQL 16 CI
-  verification; no PostgreSQL or Docker is installed locally. Prior-head run
-  [41471683241](https://github.com/anassan05/campusconnect/actions/runs/41471683241)
-  passed the earlier 14-test suite, not these new changes.
+- PostgreSQL 16 push run [41474397667](https://github.com/anassan05/campusconnect/actions/runs/41474397667)
+  on commit `85cedad9854a0109aa8baf5f2a5467d489d3f97c` passed real Prisma
+  generation, role creation, migration, provisioning, lint, typecheck, unit
+  tests and build. `npm run test:integration` reported **15 passed, 0 failed,
+  0 pending**. CI audit reported **23** (17 moderate, 4 high, 2 critical) and
+  uploaded `npm-audit-report`; a successful CI run does not mean zero findings.
+  No PostgreSQL or Docker is installed locally; a later documentation-only
+  commit triggers a new final-head run.
 - Docker/Compose and Playwright e2e remain unverified locally. Independent review
   remains pending. No production data or destructive database changes were used.
 
