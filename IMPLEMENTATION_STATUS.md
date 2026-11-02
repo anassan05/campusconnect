@@ -30,7 +30,9 @@ Branch: `arena/0e1536b2-connect` (session-fixed branch; PR targets `main`).
 - Playwright e2e specs written, **not executed** (browser binaries blocked in sandbox)
 - Prisma engine download blocked in sandbox (binaries.prisma.sh); `db:push`/`migrate` need that host reachable
 - RLS, rate limiting, email verification, private document storage: **planned, not implemented**
-- CI workflow not yet executed by GitHub (no push-triggered run observed yet)
+- CI executed by GitHub Actions on this branch push: run 41458211771 **success**
+  (job "Lint, typecheck, test, build": lint + strict typecheck + 15/15 Vitest + production build all green)
+  https://github.com/anassan05/campusconnect/actions/runs/41458211771
 
 ## Next-phase prerequisites
 - Reviewer approval of PR #1; Phase 1 (auth hardening + RLS + restricted DB roles) must not start before approval.
