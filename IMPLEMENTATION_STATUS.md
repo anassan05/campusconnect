@@ -50,4 +50,9 @@ Last updated: 2026-11-02
 
 ## Notes / constraints observed
 - No secrets committed; `.env.example` only. Synthetic seed data only.
-- No destructive DB ops, no push, no deploy performed.
+- No destructive DB ops, no deploy performed. Code pushed to `arena/0e1536b2-connect` only.
+
+## Review protocol
+- PR opened: https://github.com/anassan05/connect/pull/1 (branch `arena/0e1536b2-connect` → `main`)
+  - Note: this session's branch name is fixed by Arena, so the PR is opened from `arena/0e1536b2-connect` instead of a separate feature branch.
+- Status: **awaiting reviewer comments / final approval — PR not merged by the agent.**
