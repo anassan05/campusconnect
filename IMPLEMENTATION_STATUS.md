@@ -20,10 +20,12 @@ a privileged platform access/bootstrap design is deferred to Phase 1B review.
 - `npx prisma generate`: passed with local placeholder engine paths; real Prisma
   engine downloads are blocked in this sandbox. This is not DB verification.
 - `npm run lint`: passed; `npm run typecheck`: passed; `npm test`: 1/1 passed.
-- PostgreSQL integration tests and migration: not yet executed locally; neither
-  PostgreSQL nor Docker is installed here. CI is configured to execute against
-  PostgreSQL 16; its result must be checked separately. Do not mark complete
-  until the required tests actually pass and independent review is complete.
+- PostgreSQL migration, runtime-role provisioning and integration test step passed
+  in GitHub Actions PostgreSQL 16 run 41468840645, on commit `418530f`:
+  https://github.com/anassan05/campusconnect/actions/runs/41468840645
+  The Actions log archive was inaccessible from this sandbox, so individual test
+  counts were not observed for that run. Local PostgreSQL tests were not run:
+  neither PostgreSQL nor Docker is installed. Independent review is pending.
 - `npm run build`: passed. Docker/Compose and Playwright e2e not verified in
   this phase locally.
 

@@ -51,7 +51,13 @@ jobs:
           psql -h localhost -U ci -d campusconnect_ci -v ON_ERROR_STOP=1 -f prisma/admin/runtime-role.sql
           psql -h localhost -U ci -d campusconnect_ci -v ON_ERROR_STOP=1 -c "ALTER ROLE campusconnect_runtime LOGIN PASSWORD 'ci-only'"
       - name: PostgreSQL RLS integration tests
-        run: npm run test:integration
+        run: npm run test:integration -- --reporter=default --reporter=json --outputFile.json="$RUNNER_TEMP/tenant-tests.json"
+      - name: Report PostgreSQL test counts
+        if: always()
+        run: |
+          if [ -f "$RUNNER_TEMP/tenant-tests.json" ]; then
+            node -e 'const r=require(process.argv[1]); console.log(`::notice title=PostgreSQL integration tests::${r.numPassedTests} passed, ${r.numFailedTests} failed, ${r.numPendingTests} pending, ${r.numTotalTests} total`)' "$RUNNER_TEMP/tenant-tests.json"
+          fi
       - name: Lint
         run: npm run lint
       - name: TypeScript typecheck (strict)

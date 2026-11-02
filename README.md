@@ -79,8 +79,7 @@ sandbox (browser binaries blocked) — documented as unverified.
   through deployment-provider environment variables or secrets managers.
 - The compose Postgres port is bound to `127.0.0.1` only, so the local dev
   database is not exposed on other network interfaces.
-- RLS and restricted-role provisioning are implemented but require real DB
-  verification; RBAC, rate limiting, audit logging, and private document
+- RLS and restricted-role provisioning are implemented and exercised in CI; RBAC, rate limiting, audit logging, and private document
   storage remain planned. See `architecture/SECURITY_MODEL.md`.
 - Never commit real student data or credentials.
 - Unverified in the agent sandbox: Docker image build (Docker unavailable) and
