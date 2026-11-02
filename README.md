@@ -68,7 +68,10 @@ IMPLEMENTATION_STATUS.md
 ## CI
 `.github/workflows/ci.yml` runs on PRs to `main`: `npm ci` (lockfile),
 Prisma client generation, lint, strict typecheck, Vitest, production build,
-and applies migrations and runs RLS integration tests on an ephemeral PostgreSQL 16 service.
+and applies migrations and runs RLS integration tests on an ephemeral PostgreSQL
+16 service. CI publishes the full `npm audit --json` report as an artifact and
+warns on findings; a successful job does not mean the audit is clear. See
+`architecture/DEPENDENCY_SECURITY.md` for current triage and follow-up.
 Playwright e2e is not yet wired into CI and has not been executed in the agent
 sandbox (browser binaries blocked) — documented as unverified.
 

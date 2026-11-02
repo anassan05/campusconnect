@@ -15,27 +15,38 @@ No authentication, RBAC, onboarding, business workflows or deployment were
 implemented. Platform identities are not accessible to the runtime tenant role;
 a privileged platform access/bootstrap design is deferred to Phase 1B review.
 
+### Dependency and provisioning review (2026-11-02)
+
+The seven stale root lockfile entries were removed; `tsx` remains as a legitimate
+optional transitive dependency. A scoped Next -> PostCSS override replaces the
+vulnerable Next-nested 8.4.31 with 8.5.32; other locked versions did not change.
+`npm audit` was 26 findings (18 moderate, 6 high, 2 critical) before, and 23
+(17 moderate, 4 high, 2 critical) after. `npm audit --omit=dev`: 3 high; Prisma
+is retained by an optional peer even in an omit-dev installation. Exact paths,
+advisories, exposure, mitigations and the non-breaking-fix limitation are in
+`architecture/DEPENDENCY_SECURITY.md`; tracked by
+[issue #4](https://github.com/anassan05/campusconnect/issues/4). The audit is not
+clean; dependency findings must be reviewed before production. CI publishes the
+full JSON audit artifact and warns, but does not treat the findings as a gate.
+
+`create-runtime-role.sql` now rejects an already-LOGIN role before migration
+without changing it. CI tests creation/idempotence with NOLOGIN and the integration
+suite exercises the actual script against the existing LOGIN test role.
+
 ### Verification (2026-11-02)
 
-- `npm ci`: passed; npm reported 25 dependency vulnerabilities (18 moderate,
-  5 high, 2 critical); dependency upgrades are outside this Phase 1A review.
-- Plain `npx prisma generate` failed locally: engine downloads are blocked.
-  Generation with placeholder engine paths succeeded for typechecking; this is
-  not database verification. CI runs `npx prisma generate` with real engines.
-- `npm run lint`: passed; `npm run typecheck`: passed; `npm test`: 1/1 passed.
-- After review fixes: GitHub Actions PostgreSQL 16 PR run 41471435001 on
-  commit `4d050011a0da2392021473430da384eed9f07170`: pre-migration role creation,
-  `npx prisma migrate deploy`, post-migration grants and `npm run test:integration`
-  passed: **14 passed, 0 failed, 0 pending** (check-run annotation). Real Prisma
-  generation, lint, typecheck, unit tests and build also succeeded.
-  https://github.com/anassan05/campusconnect/actions/runs/41471435001
-  The previous-head run 41469374544 covered the earlier eight-test suite, not
-  the review fixes. A later documentation-only commit may trigger a fresh run.
-  Local PostgreSQL tests were not run: neither PostgreSQL nor Docker is installed.
-  The sandbox cannot retrieve Actions log archives; counts were read from the
-  GitHub check-run annotation. Independent review remains pending.
-- `npm run build`: passed. Docker/Compose and Playwright e2e not verified in
-  this phase locally.
+- `npm ci` passed from a clean install. `npm ls --all` passed. `npm audit --json`
+  and `npm audit` ran and exited 1 due to findings; counts above are actual.
+- Plain `npx prisma generate` failed locally because engine downloads are blocked.
+  Placeholder-assisted generation succeeded for typechecking; this is not DB
+  verification. `npm run lint`, `npm run typecheck`, `npm test` (1/1) and
+  `npm run build` passed locally after remediation.
+- Revised role test and dependency changes require fresh PostgreSQL 16 CI
+  verification; no PostgreSQL or Docker is installed locally. Prior-head run
+  [41471683241](https://github.com/anassan05/campusconnect/actions/runs/41471683241)
+  passed the earlier 14-test suite, not these new changes.
+- Docker/Compose and Playwright e2e remain unverified locally. Independent review
+  remains pending. No production data or destructive database changes were used.
 
 ### Limitations and next steps
 

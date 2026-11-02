@@ -11,6 +11,10 @@ custom RLS, CHECKs, or grants and is **not** a safe substitute.
    the migration: PostgreSQL requires the role named in `CREATE POLICY ... TO`
    to exist. The script creates `campusconnect_runtime` NOLOGIN, NOSUPERUSER,
    NOBYPASSRLS, and refuses unsafe attributes or memberships in either direction.
+   An existing LOGIN-enabled role is rejected without alteration: the script
+   is idempotent only while the role is NOLOGIN. Once LOGIN is deliberately
+   provisioned after migration, a rerun must fail rather than silently disable
+   it; coordinate any future maintenance separately.
 2. A separate, controlled migration identity owns the tables and applies DDL;
    never use it for the application. An ordinary table owner is subject to FORCE
    RLS and has no matching policy, so tenant DML is denied. PostgreSQL superusers
@@ -72,7 +76,9 @@ The suite creates random synthetic rows and does not delete data. It verifies
 RLS and a composite FK against real PostgreSQL, checks policy targets, runtime
 attributes, effective permissions, ownership and FORCE flags, demonstrates the
 forgeable custom setting, and uses a one-connection pool to test context reuse
-on commit and rollback. CI provisions an ephemeral PostgreSQL 16 service and
+on commit and rollback. The suite reruns the actual pre-migration script against
+an existing LOGIN role and checks it fails without modifying the role. CI also
+checks initial creation and a NOLOGIN rerun before migration. CI provisions an ephemeral PostgreSQL 16 service and
 runs these steps with disposable credentials. A superuser fixture writer is
 used **only** in the isolated test database because FORCE RLS applies to normal
 owners. CI and local results are recorded in `IMPLEMENTATION_STATUS.md`.
