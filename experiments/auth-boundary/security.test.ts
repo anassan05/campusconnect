@@ -64,6 +64,13 @@ describe("Disposable PostgreSQL authentication boundary proof", () => {
       expect(await tx.user.findUnique({ where: { id: userA } })).not.toBeNull();
     });
   });
+  it("documents that a malicious runtime SQL caller can still forge the Phase 1A tenant GUC", async () => {
+    // This successful read demonstrates an unchanged limitation, NOT isolation.
+    await runtime.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT set_config('app.college_id', ${b}, true)`;
+      expect(await tx.user.findUnique({ where: { id: userB } })).not.toBeNull();
+    });
+  });
   it("authenticates a platform identity through the same credential interface", async () => {
     const token = await login(emails.platform, password);
     expect(token).toBeTruthy();
