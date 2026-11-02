@@ -2,6 +2,25 @@
 
 Last updated: 2026-11-02
 
+## Phase 1B-A — feasibility study (draft, not approved)
+
+The standalone disposable PostgreSQL proof and real Auth.js handler experiment
+are in `experiments/auth-boundary/`; `architecture/PHASE_1B_AUTH_DECISION.md`
+compares alternatives, documents the privilege model, evidence and outstanding
+security gates. No app auth endpoints, production changes or new Prisma
+migration exist. The existing tenant GUC remains forgeable; arbitrary SQL with
+runtime credentials can enumerate another tenant. Rate limiting and audit are
+strategies only, not implemented. The proof is not production security clearance.
+Project-owner and independent review are required before Phase 1B begins.
+
+On PostgreSQL 16, CI run [41482874697](https://github.com/anassan05/campusconnect/actions/runs/41482874697)
+on `b8838b36ce2fce17c987f774fdee071ac72af525` passed **18 proof tests, 0 failed**
+and **15 existing RLS tests, 0 failed**, plus Prisma generation, lint, typecheck,
+unit test and build. A documentation-only commit triggers a fresh final-head run. Local PostgreSQL and Docker
+are unavailable. `npm audit --json` reported 23 findings: 17 moderate, 4 high,
+2 critical; [issue #4](https://github.com/anassan05/campusconnect/issues/4)
+remains open. Auth.js was added only as a dev dependency for the experiment.
+
 ## Phase 1B — blocked at identity-boundary design
 
 No authentication, session management, authorization matrix or protected
