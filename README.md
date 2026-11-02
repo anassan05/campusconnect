@@ -6,7 +6,8 @@ planned to be enforced by PostgreSQL Row-Level Security on top of mandatory
 server-side, session-derived tenant filtering.
 
 > **Status: Phase 0 — engineering foundation only (complete and merged via
-> PR #1).** No business modules, authentication, or APIs are implemented yet.
+> PR #1).** No business modules, authentication, or business-facing APIs are
+> implemented yet. The only API route currently implemented is `GET /api/health`.
 > See `architecture/DEVELOPMENT_ROADMAP.md` and `IMPLEMENTATION_STATUS.md`.
 
 ## Planned key capabilities (not implemented)
