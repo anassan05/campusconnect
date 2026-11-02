@@ -32,9 +32,10 @@ npm ci
 npx prisma generate
 npm run dev                    # http://localhost:3000
 ```
-Database schema sync/migrations (`npm run db:push` / `npm run db:migrate`) are
-introduced together with the first domain schema in a later phase; no
-migration history exists yet.
+The `db:push` / `db:migrate` / `db:generate` / `db:studio` scripts already exist
+in `package.json`, but the Prisma schema currently contains **no domain models
+and no migration history** — those arrive together with the first domain schema
+in a later phase.
 
 ## Development commands
 | Command | Purpose |
