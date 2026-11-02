@@ -23,12 +23,14 @@ a privileged platform access/bootstrap design is deferred to Phase 1B review.
   Generation with placeholder engine paths succeeded for typechecking; this is
   not database verification. CI runs `npx prisma generate` with real engines.
 - `npm run lint`: passed; `npm run typecheck`: passed; `npm test`: 1/1 passed.
-- Before review fixes: GitHub Actions PostgreSQL 16 PR run 41469374544 on
-  commit `dacbe86`: migration, role provisioning and `npm run test:integration`
-  passed, **8 passed, 0 failed, 0 pending** (CI check-run annotation). Lint,
-  typecheck, unit tests and build also succeeded. This does not verify the
-  revised policies or tests; a new CI run is required.
-  https://github.com/anassan05/campusconnect/actions/runs/41469374544
+- After review fixes: GitHub Actions PostgreSQL 16 PR run 41471435001 on
+  commit `4d050011a0da2392021473430da384eed9f07170`: pre-migration role creation,
+  `npx prisma migrate deploy`, post-migration grants and `npm run test:integration`
+  passed: **14 passed, 0 failed, 0 pending** (check-run annotation). Real Prisma
+  generation, lint, typecheck, unit tests and build also succeeded.
+  https://github.com/anassan05/campusconnect/actions/runs/41471435001
+  The previous-head run 41469374544 covered the earlier eight-test suite, not
+  the review fixes. A later documentation-only commit may trigger a fresh run.
   Local PostgreSQL tests were not run: neither PostgreSQL nor Docker is installed.
   The sandbox cannot retrieve Actions log archives; counts were read from the
   GitHub check-run annotation. Independent review remains pending.
