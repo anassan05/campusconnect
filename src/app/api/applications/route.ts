@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireTenant, isStaff } from "@/lib/tenant";
 import { prisma } from "@/lib/prisma";
-import { can } from "@/lib/rbac";
 import { auditLog } from "@/lib/audit";
 import { apiErrorResponse, badRequest, conflict, forbidden, notFound } from "@/lib/errors";
 
-export async function GET(req: NextRequest) {
+export async function GET(_req: NextRequest) {
   try {
     const { session, tenant } = await requireTenant();
     const staff = isStaff(session.user.role);
