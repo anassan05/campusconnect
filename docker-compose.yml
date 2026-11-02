@@ -10,7 +10,9 @@ services:
       POSTGRES_PASSWORD: campusconnect
       POSTGRES_DB: campusconnect
     ports:
-      - "5432:5432"
+      # Bind to loopback only: the local dev database must not be reachable
+      # from other machines on the network.
+      - "127.0.0.1:5432:5432"
     volumes:
       - campusconnect_pgdata:/var/lib/postgresql/data
     healthcheck:

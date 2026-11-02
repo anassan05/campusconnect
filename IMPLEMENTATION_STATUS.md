@@ -64,4 +64,7 @@ must not begin before approval.
 
 ## Safety
 No secrets committed; no real student data; no destructive DB operations; no
-deployment; PR left open and unmerged.
+deployment; PR left open and unmerged. `docker-compose.yml` uses local
+dev-only credentials (disclosed in README; loopback-only port binding);
+production credentials must come from deployment-provider env vars/secrets.
+Docker image build and Playwright e2e remain unverified in the agent sandbox.

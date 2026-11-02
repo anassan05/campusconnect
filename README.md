@@ -69,11 +69,20 @@ Playwright e2e is not yet wired into CI and has not been executed in the agent
 sandbox (browser binaries blocked) — documented as unverified.
 
 ## Security notes
-- No secrets or credentials are committed; `.env.example` contains placeholders only.
+- No real production credentials or secrets are committed; `.env.example`
+  contains placeholders only.
+- `docker-compose.yml` contains **local development-only** PostgreSQL
+  credentials (`campusconnect` / `campusconnect`). They must **never** be
+  reused in staging or production. Production credentials must be supplied
+  through deployment-provider environment variables or secrets managers.
+- The compose Postgres port is bound to `127.0.0.1` only, so the local dev
+  database is not exposed on other network interfaces.
 - Planned security controls (RLS, RBAC, rate limiting, audit logging, private
   document storage) are documented in `architecture/SECURITY_MODEL.md` and are
   **not yet implemented**.
 - Never commit real student data or credentials.
+- Unverified in the agent sandbox: Docker image build (Docker unavailable) and
+  Playwright e2e (browser binaries blocked).
 
 ## Docker
 ```bash
