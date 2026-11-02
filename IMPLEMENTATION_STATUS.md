@@ -32,8 +32,9 @@ application workflows. Phase 0 now contains foundation + documentation only.
 - `npm run typecheck` (strict) — **0 errors**
 - `npm test` (Vitest) — **1/1 passed** (health endpoint)
 - `npm run build` — **succeeded** (production build)
-- GitHub Actions on branch push — see PR #1 checks (earlier run 41458211771 was
-  for the pre-correction commit; the corrected commit triggers a new run)
+- GitHub Actions on the corrected commit (d0e1cf4): run **41459517857 → success**
+  (lint + strict typecheck + Vitest + production build green)
+  https://github.com/anassan05/campusconnect/actions/runs/41459517857
 
 ## Review findings — recorded, not hidden
 1. RLS is **not implemented** (planned Phase 1) — documented in MULTI_TENANCY.md.
@@ -55,7 +56,7 @@ application workflows. Phase 0 now contains foundation + documentation only.
 - Prisma engine download (binaries.prisma.sh) blocked in sandbox; `db:push`/
   `migrate` require that host reachable.
 - Playwright e2e not executed (see finding 7).
-- CI for the corrected commit pending/succeeding — see PR #1 checks.
+- CI for the corrected commit: run 41459517857 success (see above).
 
 ## Next-phase prerequisites
 Independent review approval of PR #1. Phase 1 (auth, RLS, security foundation)
