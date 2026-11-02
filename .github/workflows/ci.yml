@@ -47,6 +47,7 @@ jobs:
         env:
           PGPASSWORD: ci
         run: |
+          psql -h localhost -U ci -d campusconnect_ci -v ON_ERROR_STOP=1 -f prisma/admin/create-runtime-role.sql
           npx prisma migrate deploy
           psql -h localhost -U ci -d campusconnect_ci -v ON_ERROR_STOP=1 -f prisma/admin/runtime-role.sql
           psql -h localhost -U ci -d campusconnect_ci -v ON_ERROR_STOP=1 -c "ALTER ROLE campusconnect_runtime LOGIN PASSWORD 'ci-only'"

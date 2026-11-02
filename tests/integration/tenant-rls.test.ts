@@ -66,6 +66,38 @@ describe("PostgreSQL tenant isolation (restricted runtime login)", () => {
     await expect(runtime.user.create({ data: { email: email(), role: "STUDENT", collegeId: a } })).rejects.toThrow();
   });
 
+  it("empty context also denies reads and inserts", async () => {
+    await runtime.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT set_config('app.college_id', ${""}, true)`;
+      expect(await tx.user.findMany({ where: { id: { in: [userA, userB] } } })).toEqual([]);
+      expect(await tx.college.findMany({ where: { id: { in: [a, b] } } })).toEqual([]);
+    });
+    await expect(runtime.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT set_config('app.college_id', ${""}, true)`;
+      return tx.user.create({ data: { email: email(), role: "STUDENT", collegeId: a } });
+    })).rejects.toThrow();
+  });
+
+  it("acknowledges the GUC is forgeable by runtime, not an authentication boundary", async () => {
+    // Deliberately act as an attacker with arbitrary SQL, not an authorized
+    // application request. This demonstrates a limitation, not isolation.
+    await withTenantTransaction(runtime, a, async (tx) => {
+      expect(await tx.user.findUnique({ where: { id: userB } })).toBeNull();
+      await tx.$queryRaw`SELECT set_config('app.college_id', ${b}, true)`;
+      expect(await tx.user.findUnique({ where: { id: userB } })).not.toBeNull();
+      expect(await tx.user.findUnique({ where: { id: userA } })).toBeNull();
+    });
+  });
+
+  it("allows a null creator for controlled bootstrap or import", async () => {
+    await withTenantTransaction(runtime, a, async (tx) => {
+      const user = await tx.user.create({ data: {
+        id: randomUUID(), email: email(), role: "STUDENT", collegeId: a, createdByUserId: null,
+      } });
+      expect(user.createdByUserId).toBeNull();
+    });
+  });
+
   it("a tenant user cannot reference a creator in a different tenant", async () => {
     // Row itself satisfies RLS; the composite FK, not RLS, must reject it.
     await expect(withTenantTransaction(runtime, a, (tx) => tx.user.create({ data: {
@@ -81,7 +113,7 @@ describe("PostgreSQL tenant isolation (restricted runtime login)", () => {
   it("checks role attributes, membership, ownership, and enabled/forced RLS", async () => {
     const roles = await runtime.$queryRaw<Array<{ current_user: string; rolsuper: boolean; rolbypassrls: boolean; memberships: bigint }>>`
       SELECT current_user, r.rolsuper, r.rolbypassrls,
-      (SELECT count(*) FROM pg_auth_members m WHERE m.member = r.oid) AS memberships
+      (SELECT count(*) FROM pg_auth_members m WHERE m.member = r.oid OR m.roleid = r.oid) AS memberships
       FROM pg_roles r WHERE r.rolname = current_user`;
     expect(roles).toEqual([{ current_user: "campusconnect_runtime", rolsuper: false, rolbypassrls: false, memberships: 0n }]);
     const tables = await runtime.$queryRaw<Array<{ relname: string; relrowsecurity: boolean; relforcerowsecurity: boolean; owner: string }>>`
@@ -94,6 +126,69 @@ describe("PostgreSQL tenant isolation (restricted runtime login)", () => {
       expect(table.relforcerowsecurity).toBe(true);
       expect(table.owner).not.toBe("campusconnect_runtime");
     }
+  });
+
+  it("targets only the runtime role in both complete RLS policies", async () => {
+    const policies = await runtime.$queryRaw<Array<{ tablename: string; policyname: string; roles: string; cmd: string; qual: string | null; with_check: string | null }>>`
+      SELECT tablename, policyname, array_to_string(roles, ',') AS roles, cmd, qual, with_check
+      FROM pg_policies WHERE schemaname = 'public' AND tablename IN ('colleges', 'users')
+      ORDER BY tablename`;
+    expect(policies).toHaveLength(2);
+    expect(policies.map(({ tablename, policyname, roles, cmd }) => ({ tablename, policyname, roles, cmd }))).toEqual([
+      { tablename: "colleges", policyname: "colleges_tenant_isolation", roles: "campusconnect_runtime", cmd: "ALL" },
+      { tablename: "users", policyname: "users_tenant_isolation", roles: "campusconnect_runtime", cmd: "ALL" },
+    ]);
+    for (const policy of policies) {
+      expect(policy.qual).toContain("app.college_id");
+      expect(policy.with_check).toContain("app.college_id");
+    }
+  });
+
+  it("has only the expected effective table privileges and no grant options", async () => {
+    const permissions = await runtime.$queryRaw<Array<{ tablename: string; privilege: string; allowed: boolean; grantable: boolean }>>`
+      SELECT c.relname AS tablename, p.privilege,
+        has_table_privilege(current_user, c.oid, p.privilege) AS allowed,
+        has_table_privilege(current_user, c.oid, p.privilege || ' WITH GRANT OPTION') AS grantable
+      FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+      CROSS JOIN (VALUES ('SELECT'), ('INSERT'), ('UPDATE'), ('DELETE'), ('TRUNCATE'), ('REFERENCES'), ('TRIGGER')) AS p(privilege)
+      WHERE n.nspname = 'public' AND c.relname IN ('colleges', 'users')`;
+    expect(permissions).toHaveLength(14);
+    for (const row of permissions) {
+      const expected = row.tablename === "colleges"
+        ? ["SELECT"] : ["SELECT", "INSERT", "UPDATE", "DELETE"];
+      expect(row.allowed, `${row.tablename} ${row.privilege}`).toBe(expected.includes(row.privilege));
+      expect(row.grantable).toBe(false);
+    }
+    const columnGrantOptions = await runtime.$queryRaw<Array<{ tablename: string; privilege: string; grantable: boolean }>>`
+      SELECT c.relname AS tablename, p.privilege,
+        has_any_column_privilege(current_user, c.oid, p.privilege || ' WITH GRANT OPTION') AS grantable
+      FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+      CROSS JOIN (VALUES ('SELECT'), ('INSERT'), ('UPDATE'), ('REFERENCES')) AS p(privilege)
+      WHERE n.nspname = 'public' AND c.relname IN ('colleges', 'users')`;
+    expect(columnGrantOptions).toHaveLength(8);
+    for (const row of columnGrantOptions) expect(row.grantable).toBe(false);
+    const [{ collegeInsert, collegeUpdate, collegeReferences, userReferences }] = await runtime.$queryRaw<Array<{
+      collegeInsert: boolean; collegeUpdate: boolean; collegeReferences: boolean; userReferences: boolean;
+    }>>`SELECT has_any_column_privilege(current_user, 'public.colleges', 'INSERT') AS "collegeInsert",
+      has_any_column_privilege(current_user, 'public.colleges', 'UPDATE') AS "collegeUpdate",
+      has_any_column_privilege(current_user, 'public.colleges', 'REFERENCES') AS "collegeReferences",
+      has_any_column_privilege(current_user, 'public.users', 'REFERENCES') AS "userReferences"`;
+    expect({ collegeInsert, collegeUpdate, collegeReferences, userReferences }).toEqual({
+      collegeInsert: false, collegeUpdate: false, collegeReferences: false, userReferences: false,
+    });
+  });
+
+  it("cannot create objects in the application schema", async () => {
+    const [{ canCreate, canUse }] = await runtime.$queryRaw<Array<{ canCreate: boolean; canUse: boolean }>>`
+      SELECT has_schema_privilege(current_user, 'public', 'CREATE') AS "canCreate",
+             has_schema_privilege(current_user, 'public', 'USAGE') AS "canUse"`;
+    expect(canCreate).toBe(false);
+    expect(canUse).toBe(true);
+    // Always roll back even if unexpectedly permitted: no objects are kept.
+    await expect(runtime.$transaction(async (tx) => {
+      await tx.$executeRaw`CREATE TABLE public.unexpected_runtime_create (id integer)`;
+      throw new Error("Unexpected schema CREATE privilege");
+    })).rejects.toMatchObject({ code: "P2010", meta: { code: "42501" } });
   });
 
   it("does not leak context when the same pooled connection is reused after commit and rollback", async () => {
