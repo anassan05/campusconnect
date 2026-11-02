@@ -10,16 +10,17 @@ CampusConnect is a planned **multi-tenant SaaS platform for college placement
 management** for engineering colleges in India. One shared PostgreSQL database
 will serve many colleges ("tenants"); tenant-scoped records will carry a tenant
 identifier and will be protected by PostgreSQL Row-Level Security **plus**
-mandatory application-level tenant filtering. Currently (Phase 0) only the
-engineering foundation exists — see `architecture/SYSTEM_ARCHITECTURE.md` for
-what is implemented vs planned.
+mandatory application-level tenant filtering. Phase 1A was merged in PR #3;
+Phase 1B authentication has not been implemented. See
+`architecture/SYSTEM_ARCHITECTURE.md` for implemented versus planned scope.
 
 ## 2. Technology stack & coding standards
 
 - Next.js App Router, React, TypeScript **strict mode** (mandatory; avoid
   `any` unless justified with a comment), Tailwind CSS.
-- PostgreSQL 16 + Prisma. Auth, Zod validation and REST APIs are planned for
-  Phase 1+ — do not introduce them early.
+- PostgreSQL 16 + Prisma. Authentication and REST APIs remain planned; do not
+  expose tenant data before a verified server-side identity and authorization
+  boundary exists.
 - Server-side logic belongs in `src/lib` and `src/app/api`; never trust the
   client for authorization.
 - Meaningful, logically grouped commits.
@@ -38,8 +39,8 @@ architecture/     # decision documents
 
 ## 4. Database & migration conventions
 
-- Schema changes go through Prisma. Dev uses `db:push`; committed migration SQL
-  via `prisma migrate dev` starts with the first domain schema.
+- Schema changes use committed additive Prisma migrations; never edit a merged
+  migration. `db:push` does not install custom RLS and is not a safe substitute.
 - Use a **separate migration identity** from the restricted application runtime
   role (see `architecture/DATABASE_STRATEGY.md`).
 - Never run destructive commands (`migrate reset`, `db drop`, DROP/TRUNCATE)
@@ -55,7 +56,9 @@ architecture/     # decision documents
 
 ## 6. Authentication & authorization standards (planned)
 
-- Server-side authentication, secure password hashing, secure sessions.
+- Server-side authentication, secure password hashing, secure sessions. The
+  Phase 1B privileged lookup candidate is not implemented or verified; see
+  `architecture/PHASE_1B_AUTH_DESIGN.md`. Do not bypass RLS to implement it.
 - Centralized server-side RBAC against the five-role model in
   `architecture/ROLE_MODEL.md`. Client-side role checks are UX only.
 

@@ -2,6 +2,7 @@
 
 > The five values are implemented as a PostgreSQL/Prisma enum. Authentication,
 > role assignment authorization and the permission matrix remain planned.
+> The Phase 1B identity boundary candidate is in `PHASE_1B_AUTH_DESIGN.md`.
 
 | Role | Scope | Key abilities (planned) |
 |---|---|---|

@@ -5,11 +5,12 @@ India. One shared PostgreSQL database serves many colleges. PostgreSQL RLS is
 only defense in depth for tenant isolation: verified identity, authorization and
 server-side tenant filtering are required before tenant-data endpoints exist.
 
-> **Status: Phase 1A in progress.** College/User schema, forced RLS, a
-> transaction-local tenant helper and restricted DB role provisioning are
-> implemented; verification and review are pending. No authentication, RBAC,
-> business workflows or business-facing APIs exist. See
-> `IMPLEMENTATION_STATUS.md` and `architecture/MULTI_TENANCY.md`.
+> **Status: Phase 1A merged; Phase 1B blocked at authentication design.**
+> College/User schema, forced RLS, transaction-local context and restricted DB
+> role provisioning were merged in PR #3. No authentication, RBAC, business
+> workflows or tenant-data APIs exist. The proposed privileged identity lookup
+> boundary is not implemented or verified; see `IMPLEMENTATION_STATUS.md` and
+> `architecture/PHASE_1B_AUTH_DESIGN.md`.
 
 ## Planned key capabilities (not implemented)
 College onboarding & platform approval, student profiles & documents, company

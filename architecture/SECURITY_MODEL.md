@@ -1,8 +1,9 @@
 # Security Model
 
-> Phase 1A adds database RLS and a tenant transaction helper; verification
-> status is tracked in IMPLEMENTATION_STATUS.md. Authentication and RBAC remain
-> unimplemented. Other controls below remain planned unless marked ✅.
+> Phase 1A RLS and the tenant helper were merged in PR #3. Authentication and
+> RBAC remain unimplemented; the Phase 1B lookup candidate is documented but not
+> demonstrated in `PHASE_1B_AUTH_DESIGN.md`. Other controls below remain planned
+> unless marked ✅.
 
 ## Planned authentication (Phase 1)
 - Auth.js / NextAuth v5, credentials provider, **JWT sessions** with bounded

@@ -47,10 +47,11 @@ Phase 1B must verify server-controlled identity, current authorization and trust
 tenant derivation before any tenant-data endpoint is exposed; every tenant query
 must use the callback transaction client and an explicit trusted tenant filter.
 
-This migration is unreleased and was revised in PR #3. Earlier CI runs used
-fresh disposable databases; do not edit an applied migration on a persistent
-database. For this revision use a fresh disposable database, without resetting
-or dropping an existing one. Local Compose's admin is never the runtime identity.
+The initial migration was merged in PR #3 and must not be edited. Any future
+schema change requires a new additive migration; use a fresh disposable database
+for testing, without resetting or dropping an existing one. Local Compose's admin
+is never the runtime identity. The proposed Phase 1B authentication lookup
+boundary is not implemented or verified; see `PHASE_1B_AUTH_DESIGN.md`.
 
 ## Integration tests (disposable database only)
 
