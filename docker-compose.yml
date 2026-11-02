@@ -1,0 +1,36 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: campusconnect-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: campusconnect
+      POSTGRES_PASSWORD: campusconnect
+      POSTGRES_DB: campusconnect
+    ports:
+      - "5432:5432"
+    volumes:
+      - campusconnect_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U campusconnect -d campusconnect"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build: .
+    container_name: campusconnect-app
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://campusconnect:campusconnect@postgres:5432/campusconnect?schema=public
+      AUTH_SECRET: ${AUTH_SECRET:-dev-only-secret-change-me}
+      AUTH_URL: http://localhost:3000
+      NODE_ENV: production
+    ports:
+      - "3000:3000"
+
+volumes:
+  campusconnect_pgdata:

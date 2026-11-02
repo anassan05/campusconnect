@@ -1,0 +1,304 @@
+// CampusConnect — multi-tenant Prisma schema
+// Every tenant-scoped model carries tenantId; access is always filtered by it.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Tenancy & identity
+// ---------------------------------------------------------------------------
+
+model Tenant {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique // used for tenant resolution (subdomain / slug login)
+  domain    String?  @unique
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users            User[]
+  students         StudentProfile[]
+  companies        Company[]
+  jobPostings      JobPosting[]
+  applications     Application[]
+  interviews       Interview[]
+  rounds           InterviewRound[]
+  offers           Offer[]
+  auditLogs        AuditLog[]
+  settings         TenantSetting?
+}
+
+enum Role {
+  SUPER_ADMIN // platform operator (cross-tenant), not tenant-scoped data access
+  ADMIN       // college admin
+  TPO         // training & placement officer
+  FACULTY     // faculty / mentor
+  STUDENT
+  COMPANY     // recruiter from a partner company
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String
+  emailVerified DateTime?
+  passwordHash  String?
+  name          String
+  role          Role      @default(STUDENT)
+  tenantId      String? // null only for SUPER_ADMIN
+  tenant        Tenant?   @relation(fields: [tenantId], references: [id])
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  studentProfile StudentProfile?
+  accounts       Account[]
+  sessions       Session[]
+  auditLogs      AuditLog[]
+
+  @@unique([email, tenantId])
+  @@index([tenantId, role])
+}
+
+// Auth.js compatible account/session models (database sessions)
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expires      DateTime
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ---------------------------------------------------------------------------
+// Core placement domain
+// ---------------------------------------------------------------------------
+
+model StudentProfile {
+  id             String   @id @default(cuid())
+  userId         String   @unique
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenantId       String
+  tenant         Tenant   @relation(fields: [tenantId], references: [id])
+  rollNumber     String
+  department     String // e.g. CSE, ECE
+  batch          Int // graduation year
+  cgpa           Decimal? @db.Decimal(4, 2)
+  tenthPercent   Decimal? @db.Decimal(5, 2)
+  twelfthPercent Decimal? @db.Decimal(5, 2)
+  backlogs       Int      @default(0)
+  skills         String[]
+  resumeUrl      String?
+  isEligible     Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  applications Application[]
+  offers       Offer[]
+
+  @@unique([tenantId, rollNumber])
+  @@index([tenantId, batch, department])
+}
+
+model Company {
+  id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  name        String
+  industry    String?
+  website     String?
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  jobPostings JobPosting[]
+
+  @@unique([tenantId, name])
+}
+
+enum JobType {
+  FULL_TIME
+  INTERNSHIP
+  CONTRACT
+}
+
+enum JobStatus {
+  DRAFT
+  OPEN
+  CLOSED
+  CANCELLED
+}
+
+model JobPosting {
+  id               String    @id @default(cuid())
+  tenantId         String
+  tenant           Tenant    @relation(fields: [tenantId], references: [id])
+  companyId        String
+  company          Company   @relation(fields: [companyId], references: [id])
+  title            String
+  description      String
+  jobType          JobType   @default(FULL_TIME)
+  status           JobStatus @default(DRAFT)
+  location         String?
+  packageCTC       Decimal?  @db.Decimal(10, 2)
+  minCgpa         Decimal?  @db.Decimal(4, 2)
+  eligibleBatches  Int[]
+  eligibleDepts    String[]
+  skillsRequired   String[]
+  applicationDeadline DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  applications Application[]
+  rounds       InterviewRound[]
+
+  @@index([tenantId, status])
+}
+
+enum ApplicationStatus {
+  APPLIED
+  SHORTLISTED
+  REJECTED
+  WITHDRAWN
+  OFFERED
+}
+
+model Application {
+  id            String            @id @default(cuid())
+  tenantId      String
+  tenant        Tenant            @relation(fields: [tenantId], references: [id])
+  jobId         String
+  job           JobPosting        @relation(fields: [jobId], references: [id])
+  studentId     String
+  student       StudentProfile    @relation(fields: [studentId], references: [id])
+  status        ApplicationStatus @default(APPLIED)
+  appliedAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  interviews Interview[]
+  offers     Offer[]
+
+  @@unique([jobId, studentId])
+  @@index([tenantId, status])
+}
+
+enum InterviewStatus {
+  SCHEDULED
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+model Interview {
+  id            String          @id @default(cuid())
+  tenantId      String
+  tenant        Tenant          @relation(fields: [tenantId], references: [id])
+  applicationId String
+  application   Application     @relation(fields: [applicationId], references: [id])
+  roundId       String?
+  round         InterviewRound? @relation(fields: [roundId], references: [id])
+  scheduledAt   DateTime
+  mode          String // ONLINE / OFFLINE / HYBRID
+  venueOrLink   String?
+  status        InterviewStatus @default(SCHEDULED)
+  feedback      String?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  @@index([tenantId, scheduledAt])
+}
+
+model InterviewRound {
+  id          String       @id @default(cuid())
+  tenantId    String
+  tenant      Tenant       @relation(fields: [tenantId], references: [id])
+  jobId       String
+  job         JobPosting   @relation(fields: [jobId], references: [id])
+  name        String // e.g. "Aptitude", "Technical", "HR"
+  sequence    Int
+  description String?
+  interviews  Interview[]
+  createdAt   DateTime     @default(now())
+
+  @@unique([jobId, sequence])
+}
+
+model Offer {
+  id            String    @id @default(cuid())
+  tenantId      String
+  tenant        Tenant    @relation(fields: [tenantId], references: [id])
+  applicationId String
+  application   Application @relation(fields: [applicationId], references: [id])
+  studentId     String
+  student       StudentProfile @relation(fields: [studentId], references: [id])
+  ctc           Decimal   @db.Decimal(10, 2)
+  joiningDate   DateTime?
+  letterUrl     String?
+  status        String    @default("ISSUED") // ISSUED / ACCEPTED / DECLINED / REVOKED
+  issuedAt      DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([tenantId, studentId])
+}
+
+// ---------------------------------------------------------------------------
+// Cross-cutting
+// ---------------------------------------------------------------------------
+
+model TenantSetting {
+  id              String   @id @default(cuid())
+  tenantId        String   @unique
+  tenant          Tenant   @relation(fields: [tenantId], references: [id])
+  minCgpaDefault  Decimal? @db.Decimal(4, 2)
+  allowSelfApply  Boolean  @default(true)
+  brandingPrimary String?  @default("#1b61f1")
+  updatedAt       DateTime @updatedAt
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  tenantId  String?
+  tenant    Tenant?  @relation(fields: [tenantId], references: [id])
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+  action    String
+  entity    String?
+  entityId  String?
+  metadata  Json?
+  ipAddress String?
+  createdAt DateTime @default(now())
+
+  @@index([tenantId, createdAt])
+}
