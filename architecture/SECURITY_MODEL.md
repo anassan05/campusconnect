@@ -1,8 +1,8 @@
 # Security Model
 
-> Status: 📋 **planned controls only.** Phase 0 implements no authentication,
-> no authorization and no RLS. Nothing below should be read as "already in
-> place" unless marked ✅.
+> Phase 1A adds database RLS and a tenant transaction helper; verification
+> status is tracked in IMPLEMENTATION_STATUS.md. Authentication and RBAC remain
+> unimplemented. Other controls below remain planned unless marked ✅.
 
 ## Planned authentication (Phase 1)
 - Auth.js / NextAuth v5, credentials provider, **JWT sessions** with bounded
@@ -29,7 +29,8 @@
   environment (`.env*` gitignored); CI uses non-secret dummy values.
 
 ## Honest risk statement
-The system is **not** "completely secure", and Phase 0 has no auth at all yet.
-Recorded gaps: no RLS, no rate limiting, no email verification, no
+The system is **not** "completely secure" and has no auth yet. RLS does not
+replace authorization and its custom context is writable by the runtime role.
+Recorded gaps: no RBAC, no rate limiting, no email verification, no
 breach-password screening, no private document storage. Each has an owner phase
 in DEVELOPMENT_ROADMAP.md.

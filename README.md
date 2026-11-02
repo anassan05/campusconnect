@@ -1,14 +1,14 @@
 # CampusConnect
 
 Multi-tenant **college placement management SaaS** for engineering colleges in
-India. One shared PostgreSQL database serves many colleges; tenant isolation is
-planned to be enforced by PostgreSQL Row-Level Security on top of mandatory
-server-side, session-derived tenant filtering.
+India. One shared PostgreSQL database serves many colleges; tenant isolation uses PostgreSQL Row-Level Security, with mandatory
+server-side, session-derived tenant filtering required in future application code.
 
-> **Status: Phase 0 — engineering foundation only (complete and merged via
-> PR #1).** No business modules, authentication, or business-facing APIs are
-> implemented yet. The only API route currently implemented is `GET /api/health`.
-> See `architecture/DEVELOPMENT_ROADMAP.md` and `IMPLEMENTATION_STATUS.md`.
+> **Status: Phase 1A in progress.** College/User schema, forced RLS, a
+> transaction-local tenant helper and restricted DB role provisioning are
+> implemented; verification and review are pending. No authentication, RBAC,
+> business workflows or business-facing APIs exist. See
+> `IMPLEMENTATION_STATUS.md` and `architecture/MULTI_TENANCY.md`.
 
 ## Planned key capabilities (not implemented)
 College onboarding & platform approval, student profiles & documents, company
@@ -33,10 +33,10 @@ npm ci
 npx prisma generate
 npm run dev                    # http://localhost:3000
 ```
-The `db:push` / `db:migrate` / `db:generate` / `db:studio` scripts already exist
-in `package.json`, but the Prisma schema currently contains **no domain models
-and no migration history** — those arrive together with the first domain schema
-in a later phase.
+Use `prisma migrate deploy` with a separate migration identity, then provision
+and use the restricted runtime identity. `db:push` is not safe for this schema:
+it does not install custom RLS, checks or privileges. See
+`architecture/DATABASE_STRATEGY.md` for setup and integration tests.
 
 ## Development commands
 | Command | Purpose |
@@ -46,6 +46,7 @@ in a later phase.
 | `npm run lint` | ESLint |
 | `npm run typecheck` | strict `tsc --noEmit` |
 | `npm test` | Vitest unit tests |
+| `npm run test:integration` | PostgreSQL RLS integration tests (disposable DB) |
 | `npm run test:e2e` | Playwright e2e (requires installed browsers) |
 | `npm run db:*` | Prisma helpers |
 
@@ -53,7 +54,7 @@ in a later phase.
 ```
 src/app/        # App Router pages + /api route handlers (foundation shell only)
 src/lib/        # shared server utilities (Prisma client singleton)
-prisma/         # schema.prisma (datasource/generator only — no business models yet)
+prisma/         # identity schema, migration and runtime-role provisioning
 tests/          # unit (Vitest) + e2e (Playwright)
 architecture/   # SYSTEM_ARCHITECTURE, MULTI_TENANCY, SECURITY_MODEL, ROLE_MODEL,
                 # DATABASE_STRATEGY, DEVELOPMENT_ROADMAP
@@ -65,7 +66,7 @@ IMPLEMENTATION_STATUS.md
 ## CI
 `.github/workflows/ci.yml` runs on PRs to `main`: `npm ci` (lockfile),
 Prisma client generation, lint, strict typecheck, Vitest, production build,
-with an ephemeral Postgres 16 service available for future DB-backed checks.
+and applies migrations and runs RLS integration tests on an ephemeral PostgreSQL 16 service.
 Playwright e2e is not yet wired into CI and has not been executed in the agent
 sandbox (browser binaries blocked) — documented as unverified.
 
@@ -78,9 +79,9 @@ sandbox (browser binaries blocked) — documented as unverified.
   through deployment-provider environment variables or secrets managers.
 - The compose Postgres port is bound to `127.0.0.1` only, so the local dev
   database is not exposed on other network interfaces.
-- Planned security controls (RLS, RBAC, rate limiting, audit logging, private
-  document storage) are documented in `architecture/SECURITY_MODEL.md` and are
-  **not yet implemented**.
+- RLS and restricted-role provisioning are implemented but require real DB
+  verification; RBAC, rate limiting, audit logging, and private document
+  storage remain planned. See `architecture/SECURITY_MODEL.md`.
 - Never commit real student data or credentials.
 - Unverified in the agent sandbox: Docker image build (Docker unavailable) and
   Playwright e2e (browser binaries blocked).

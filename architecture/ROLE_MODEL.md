@@ -1,7 +1,7 @@
-# Role Model (planned target)
+# Role Model — Phase 1A
 
-> Status: 📋 **planned.** Phase 0 contains no role code. This is the required
-> five-role model for the product.
+> The five values are implemented as a PostgreSQL/Prisma enum. Authentication,
+> role assignment authorization and the permission matrix remain planned.
 
 | Role | Scope | Key abilities (planned) |
 |---|---|---|

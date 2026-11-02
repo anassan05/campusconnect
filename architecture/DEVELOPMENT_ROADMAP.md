@@ -3,7 +3,8 @@
 | Phase | Scope | Status |
 |---|---|---|
 | 0 | Engineering foundation & architecture docs | ✅ complete and merged (PR #1, merge commit `992c313af60a7126fd716ad2e3eb2642709f1e9f`) |
-| 1 | Authentication, authorization & security foundation (incl. RLS, restricted DB roles, five-role RBAC) | 📋 planned — Phase 0 approval prerequisite satisfied (PR #1 merged); not implemented |
+| 1A | Identity and tenant database foundation (schema, RLS, role separation) | 🚧 implemented; verification and independent review pending |
+| 1B | Authentication, session-derived tenant authorization, five-role RBAC | 📋 planned; awaits Phase 1A review and approval |
 | 2 | College onboarding & platform approval | 📋 |
 | 3 | Student management & document handling | 📋 |
 | 4 | Company & placement drive management | 📋 |
