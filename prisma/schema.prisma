@@ -1,0 +1,18 @@
+// CampusConnect — Prisma schema (Phase 0: foundation only)
+//
+// Phase 0 intentionally contains NO business models. The multi-tenant schema
+// (tenants, users/roles, students, companies, drives, applications, offers,
+// audit logs — every tenant-scoped table with a tenant column, per-tenant
+// unique constraints and planned PostgreSQL RLS policies) is designed in
+// architecture/MULTI_TENANCY.md and architecture/DATABASE_STRATEGY.md and will
+// be introduced in the phase that owns that domain, together with the first
+// committed migration history (prisma migrate dev).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}

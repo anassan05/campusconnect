@@ -1,0 +1,58 @@
+# Dependencies & build outputs
+node_modules/
+.next/
+out/
+build/
+dist/
+*.tsbuildinfo
+next-env.d.ts
+
+# Environment & secrets (allow the example template only)
+.env
+.env.*
+!.env.example
+
+# Database artifacts
+*.sql.gz
+*.dump
+*.backup
+*.sqlite
+*.sqlite-journal
+*.db
+
+# Uploaded user documents & media
+/uploads/
+/public/uploads/
+
+# Certificates, keys, tokens
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+id_rsa*
+*.token
+credentials/
+.git-credentials
+.netrc
+
+# Local dev & temp files
+*.log
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.tmp
+tmp/
+.cache/
+coverage/
+.nyc_output/
+
+# Test artifacts
+playwright-report/
+test-results/
+playwright/.cache/
+
+# Prisma local artifacts (engines are downloaded, never committed)
+prisma/migrations/*.sql.gz

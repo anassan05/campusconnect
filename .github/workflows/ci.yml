@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main, "arena/**", "feature/**"]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: Lint, typecheck, test, build
+    runs-on: ubuntu-latest
+    # Isolated ephemeral PostgreSQL. Used only if DB-backed checks are added later;
+    # current checks (lint/type/test/build) do not require a live database.
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci
+          POSTGRES_DB: campusconnect_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ci -d campusconnect_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://ci:ci@localhost:5432/campusconnect_ci?schema=public
+      AUTH_SECRET: ci-only-not-a-real-secret
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies (lockfile)
+        run: npm ci --no-audit --no-fund
+      - name: Generate Prisma client
+        run: npx prisma generate
+      - name: Lint
+        run: npm run lint
+      - name: TypeScript typecheck (strict)
+        run: npm run typecheck
+      - name: Unit tests (Vitest)
+        run: npm test
+      - name: Production build
+        run: npm run build
+      # Playwright e2e is intentionally NOT run in CI yet: it needs a seeded
+      # database and browser install; documented as unverified until wired up.

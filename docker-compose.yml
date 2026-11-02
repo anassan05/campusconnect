@@ -1,0 +1,25 @@
+# Phase 0: local development database only. The app service is added together
+# with the first runnable backend phase.
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: campusconnect-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: campusconnect
+      POSTGRES_PASSWORD: campusconnect
+      POSTGRES_DB: campusconnect
+    ports:
+      # Bind to loopback only: the local dev database must not be reachable
+      # from other machines on the network.
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - campusconnect_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U campusconnect -d campusconnect"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  campusconnect_pgdata:
