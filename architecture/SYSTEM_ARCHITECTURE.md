@@ -16,7 +16,7 @@
 - Minimal app shell (landing page) and `GET /api/health`
 - One Vitest unit test (health endpoint) — executed, passing
 
-## Phase 1A database foundation (verification pending)
+## Phase 1A database foundation (PostgreSQL CI passed; review pending)
 - College and User models, five-role enum, tenant constraints and initial migration
 - Forced PostgreSQL RLS, restricted runtime role provisioning, transaction-local
   context helper; see MULTI_TENANCY.md for its security boundary.
