@@ -2,18 +2,23 @@
 
 Multi-tenant **college placement management SaaS** for engineering colleges in
 India. One shared PostgreSQL database serves many colleges; tenant isolation is
-enforced server-side per request and (planned) by PostgreSQL Row-Level Security.
+planned to be enforced by PostgreSQL Row-Level Security on top of mandatory
+server-side, session-derived tenant filtering.
 
-## Key capabilities (roadmap)
-College onboarding & approval, student profiles & documents, companies and
-placement drives, **deterministic** eligibility evaluation, drive registration,
-recruitment rounds & offers, student portal, coordinator workflows, analytics,
-notifications, audit logging. See `architecture/DEVELOPMENT_ROADMAP.md`.
+> **Status: Phase 0 — engineering foundation only.** No business modules,
+> authentication, or APIs are implemented yet. See
+> `architecture/DEVELOPMENT_ROADMAP.md` and `IMPLEMENTATION_STATUS.md`.
+
+## Planned key capabilities (not implemented)
+College onboarding & platform approval, student profiles & documents, company
+and placement-drive management, deterministic eligibility evaluation, drive
+registration, recruitment rounds & offers, student portal, coordinator
+workflows, analytics, notifications, audit logging.
 
 ## Technology stack
 Next.js 15 (App Router) · React 19 · TypeScript (strict) · Tailwind CSS ·
-PostgreSQL 16 + Prisma · Auth.js v5 (JWT) · Zod · Vitest · Playwright · Docker ·
-GitHub Actions CI
+PostgreSQL 16 + Prisma · Vitest · Playwright · Docker · GitHub Actions CI.
+Auth (Auth.js), Zod validation and the REST API layer are planned for Phase 1+.
 
 ## Prerequisites
 - Node.js 22+, npm
@@ -21,35 +26,32 @@ GitHub Actions CI
 
 ## Local setup
 ```bash
-cp .env.example .env.local        # fill DATABASE_URL, AUTH_SECRET (openssl rand -base64 32)
-docker compose up -d postgres      # local Postgres only
+cp .env.example .env.local     # placeholder template; fill real values locally only
+docker compose up -d           # local Postgres (development only)
 npm ci
 npx prisma generate
-npm run db:push                    # dev schema sync (use prisma migrate dev before prod)
-npm run db:seed                    # synthetic demo data only
-npm run dev                        # http://localhost:3000
+npm run dev                    # http://localhost:3000
 ```
-Demo login: college slug `demo-it`, `admin@demo.edu` / `Password123!`.
-
-## Environment configuration
-All config via environment variables; see `.env.example`. Never commit `.env*`.
+Database schema sync/migrations (`npm run db:push` / `npm run db:migrate`) are
+introduced together with the first domain schema in a later phase; no
+migration history exists yet.
 
 ## Development commands
 | Command | Purpose |
 |---|---|
 | `npm run dev` | dev server |
-| `npm run build` / `start` | production build / serve |
+| `npm run build` / `npm start` | production build / serve |
 | `npm run lint` | ESLint |
 | `npm run typecheck` | strict `tsc --noEmit` |
 | `npm test` | Vitest unit tests |
-| `npm run test:e2e` | Playwright e2e (starts dev server) |
-| `npm run db:*` | Prisma helpers (generate/push/migrate/seed/studio) |
+| `npm run test:e2e` | Playwright e2e (requires installed browsers) |
+| `npm run db:*` | Prisma helpers |
 
 ## Project structure
 ```
-src/app/        # pages, layouts, /api route handlers
-src/lib/        # prisma, auth, tenant scoping, rbac, validation, audit, errors
-prisma/         # schema, seed, migrations
+src/app/        # App Router pages + /api route handlers (foundation shell only)
+src/lib/        # shared server utilities (Prisma client singleton)
+prisma/         # schema.prisma (datasource/generator only — no business models yet)
 tests/          # unit (Vitest) + e2e (Playwright)
 architecture/   # SYSTEM_ARCHITECTURE, MULTI_TENANCY, SECURITY_MODEL, ROLE_MODEL,
                 # DATABASE_STRATEGY, DEVELOPMENT_ROADMAP
@@ -60,19 +62,19 @@ IMPLEMENTATION_STATUS.md
 
 ## CI
 `.github/workflows/ci.yml` runs on PRs to `main`: `npm ci` (lockfile),
-Prisma generate, lint, strict typecheck, Vitest, production build, with an
-isolated ephemeral Postgres service available for future DB-backed checks.
-Playwright e2e is not yet in CI (needs seeded DB + browsers) — documented as
-unverified there.
+Prisma client generation, lint, strict typecheck, Vitest, production build,
+with an ephemeral Postgres 16 service available for future DB-backed checks.
+Playwright e2e is not yet wired into CI and has not been executed in the agent
+sandbox (browser binaries blocked) — documented as unverified.
 
 ## Security notes
-- Server-side auth only; bcrypt passwords; JWT sessions; RBAC matrix enforced
-  server-side; Zod validation; audit logging; security headers.
-- Honest limitations: RLS not yet enabled, no rate limiting yet, no email
-  verification yet. Details in `architecture/SECURITY_MODEL.md`.
-- Never commit secrets or real student data.
+- No secrets or credentials are committed; `.env.example` contains placeholders only.
+- Planned security controls (RLS, RBAC, rate limiting, audit logging, private
+  document storage) are documented in `architecture/SECURITY_MODEL.md` and are
+  **not yet implemented**.
+- Never commit real student data or credentials.
 
 ## Docker
 ```bash
-AUTH_SECRET=$(openssl rand -base64 32) docker compose up -d --build
+docker compose up -d --build   # local development: Postgres service (+ app once Phase 1 lands)
 ```

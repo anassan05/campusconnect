@@ -1,3 +1,5 @@
+# Phase 0: local development database only. The app service is added together
+# with the first runnable backend phase.
 services:
   postgres:
     image: postgres:16-alpine
@@ -16,21 +18,6 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
-
-  app:
-    build: .
-    container_name: campusconnect-app
-    restart: unless-stopped
-    depends_on:
-      postgres:
-        condition: service_healthy
-    environment:
-      DATABASE_URL: postgresql://campusconnect:campusconnect@postgres:5432/campusconnect?schema=public
-      AUTH_SECRET: ${AUTH_SECRET:-dev-only-secret-change-me}
-      AUTH_URL: http://localhost:3000
-      NODE_ENV: production
-    ports:
-      - "3000:3000"
 
 volumes:
   campusconnect_pgdata:

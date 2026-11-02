@@ -2,8 +2,8 @@
 
 | Phase | Scope | Status |
 |---|---|---|
-| 0 | Engineering foundation & architecture docs | ✅ this PR |
-| 1 | Auth hardening, RLS + restricted DB roles, security foundation | 📋 blocked until Phase 0 review approval |
+| 0 | Engineering foundation & architecture docs | ✅ this PR (under review) |
+| 1 | Authentication, authorization & security foundation (incl. RLS, restricted DB roles, five-role RBAC) | 📋 blocked until Phase 0 approval |
 | 2 | College onboarding & platform approval | 📋 |
 | 3 | Student management & document handling | 📋 |
 | 4 | Company & placement drive management | 📋 |

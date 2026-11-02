@@ -1,19 +1,20 @@
-# Role Model
+# Role Model (planned target)
 
-| Role | Scope | Key abilities |
+> Status: 📋 **planned.** Phase 0 contains no role code. This is the required
+> five-role model for the product.
+
+| Role | Scope | Key abilities (planned) |
 |---|---|---|
-| `SUPER_ADMIN` | Platform, cross-tenant (explicit slug required) | Tenant management, audit access |
-| `ADMIN` | One college | User management, settings, audit |
-| `TPO` | One college | Companies, drives/jobs, applications, interviews, offers, reports |
-| `FACULTY` | One college | Read students/jobs (read-only) |
-| `STUDENT` | One college | Own profile, apply to open jobs, view own applications/offers |
-| `COMPANY` | One college | Manage own postings, drive participation |
-
-The authoritative mapping is the permission matrix in `src/lib/rbac.ts`
-(`PERMISSIONS` + `can()`), enforced server-side. Planned product roles
-(`PLATFORM_SUPER_ADMIN`, `COLLEGE_ADMIN`, `PLACEMENT_OFFICER`, `COORDINATOR`,
-`STUDENT`) map onto this model in later phases.
+| `PLATFORM_SUPER_ADMIN` | Platform, cross-tenant (explicit tenant selection required) | Approve colleges, platform settings, audit access |
+| `COLLEGE_ADMIN` | One college | Workspace settings, user management, audit |
+| `PLACEMENT_OFFICER` | One college | Companies, drives, applications, rounds, offers, reports |
+| `COORDINATOR` | One college (department/section scope) | Student management, drive coordination workflows |
+| `STUDENT` | One college | Own profile/documents, drive registration, own applications & offers |
 
 Rules:
-- A user belongs to at most one tenant (except SUPER_ADMIN).
-- Role checks never happen only on the client.
+- A user belongs to at most one college (except PLATFORM_SUPER_ADMIN).
+- Authorization is always enforced server-side against a central permission
+  matrix; client-side role checks are UX only.
+
+Note: an earlier in-progress draft used a six-role variant; that code was
+removed from Phase 0 per review, and this five-role model is the target.

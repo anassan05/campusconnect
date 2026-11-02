@@ -1,37 +1,35 @@
 # Security Model
 
-## Authentication (implemented ✅)
-- Auth.js / NextAuth v5, credentials provider, **JWT sessions (8h max age)**.
-- Passwords hashed with **bcrypt (cost 12)**; minimum 10 chars at registration.
-- Login endpoint resolves the tenant by college slug server-side.
+> Status: 📋 **planned controls only.** Phase 0 implements no authentication,
+> no authorization and no RLS. Nothing below should be read as "already in
+> place" unless marked ✅.
 
-## Authorization (implemented ✅, hardening planned 📋)
-- Central permission matrix (`src/lib/rbac.ts`); enforced server-side in route
-  handlers and server components. Client checks are UX-only.
-- Roles: SUPER_ADMIN, ADMIN, TPO, FACULTY, STUDENT, COMPANY.
+## Planned authentication (Phase 1)
+- Auth.js / NextAuth v5, credentials provider, **JWT sessions** with bounded
+  max age; passwords hashed with **bcrypt (cost ≥ 12)**; minimum password
+  length policy; email verification and single-use reset tokens.
 
-## Transport & headers (implemented ✅)
-- Security headers on all routes: `X-Frame-Options: DENY`,
-  `X-Content-Type-Options: nosniff`, `Referrer-Policy`.
-- `poweredByHeader` disabled. HTTPS expected at the edge in deployment.
+## Planned authorization (Phase 1)
+- Central server-side RBAC matrix keyed to the five-role model
+  (ROLE_MODEL.md); enforced in route handlers and server components.
+  Client-side checks are UX only, never a boundary.
 
-## Input & output
-- All API input validated with Zod; errors return generic messages, no stack
-  traces (500 handler logs server-side only). ✅
-- Audit log records actor, tenant, action, entity, metadata for mutations. ✅
+## Planned transport & headers
+- Security headers (X-Frame-Options DENY, nosniff, Referrer-Policy) ✅ already
+  set in `next.config.ts`; `poweredByHeader` disabled ✅. HTTPS at the edge in
+  deployment.
 
-## Planned hardening (📋)
-- Rate limiting on auth + mutating endpoints.
-- Email verification / password reset flows with single-use tokens.
-- CSRF: server actions are protected by Next.js; REST mutations should move to
-  POST-only with origin checks.
-- Private document storage (resumes, offer letters) with signed URLs —
-  currently plain URL fields.
-- Secrets only via environment; `.env*` gitignored; CI uses non-secret dummy
-  values.
+## Planned input/output & audit
+- Zod validation on all API input; generic error responses, no stack traces;
+  audit log of actor/tenant/action/entity for security-relevant mutations.
+
+## Planned hardening
+- Rate limiting on auth and mutating endpoints; CSRF-safe mutations; private
+  document storage with signed URLs for resumes/offer letters; secrets only via
+  environment (`.env*` gitignored); CI uses non-secret dummy values.
 
 ## Honest risk statement
-The system is **not** "completely secure". Known gaps: no RLS yet (see
-MULTI_TENANCY.md), no rate limiting, no email verification, no breach-password
-screening, documents are URL-referenced not stored privately. Each is tracked
-with a mitigation in the roadmap.
+The system is **not** "completely secure", and Phase 0 has no auth at all yet.
+Recorded gaps: no RLS, no rate limiting, no email verification, no
+breach-password screening, no private document storage. Each has an owner phase
+in DEVELOPMENT_ROADMAP.md.
